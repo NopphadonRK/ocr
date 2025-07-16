@@ -36,8 +36,8 @@ def load_models():
     global license_plate_model, code_prov_model
     try:
         # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe' # Uncomment and set your Tesseract path if needed
-        license_plate_model = YOLO("ocr/license_plate.pt")
-        code_prov_model = YOLO("ocr/code_prov.pt")
+        license_plate_model = YOLO("license_plate.pt")
+        code_prov_model = YOLO("code_prov.pt")
         print("YOLOv8 models loaded successfully.")
         filename_label.config(text="Models loaded successfully.", fg=TEXT_COLOR)
         load_provinces()
