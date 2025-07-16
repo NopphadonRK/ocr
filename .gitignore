@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+*.pt
+*.weights
+*.jpg
+*.jpeg
+*.png
+*.bmp
+.DS_Store
