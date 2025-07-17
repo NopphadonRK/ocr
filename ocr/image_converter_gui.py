@@ -118,7 +118,7 @@ def run_yolo_detection_and_ocr():
             return
             
     # Clear previously displayed images
-    for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'deskewed_label', 'blurred_final_label', 'detected_chars_label']:
+    for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'detected_chars_label']:
         if hasattr(root, attr):
             getattr(root, attr).config(image='')
     result_label.config(text="")
@@ -126,7 +126,7 @@ def run_yolo_detection_and_ocr():
     max_width = 400
     
     # 1. Detection: YOLO
-    filename_label.config(text="Step 1/6: Detecting license plate...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 1/8: Detecting license plate...", fg=TEXT_COLOR)
     root.update_idletasks()
     results_plate = license_plate_model(original_cv_image, verbose=False)
     
@@ -155,7 +155,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0)
 
     # 2. Cropping ป้ายทะเบียน
-    filename_label.config(text="Step 2/6: Cropping plate...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 2/8: Cropping plate...", fg=TEXT_COLOR)
     root.update_idletasks()
     initial_cropped_plate = original_cv_image[y1:y2, x1:x2]
 
@@ -174,7 +174,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.2)
     
     # 3. Grayscale
-    filename_label.config(text="Step 3/7: Converting to Grayscale...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 3/8: Converting to Grayscale...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     gray = cv2.cvtColor(initial_cropped_plate, cv2.COLOR_BGR2GRAY)
@@ -214,7 +214,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.4)
     
     # 5. Contour Detection
-    filename_label.config(text="Step 5/9: Contour Detection...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 5/8: Contour Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     # Find largest white contour only
@@ -240,7 +240,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.45)
     
     # 6. Rectangle Corner Detection
-    filename_label.config(text="Step 6/10: Rectangle Corner Detection...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 6/8: Rectangle Corner Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     corner_img = initial_cropped_plate.copy()
@@ -267,7 +267,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.55)
     
     # 7. Warp Perspective
-    filename_label.config(text="Step 7/10: Warp Perspective...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 7/8: Warp Perspective...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     warped_cv = initial_cropped_plate.copy()
@@ -299,65 +299,8 @@ def run_yolo_detection_and_ocr():
     root.warped_label.image = warped_tk
     canvas.xview_moveto(0.65)
     
-    # 8. Deskew
-    filename_label.config(text="Step 8/10: Deskewing plate...", fg=TEXT_COLOR)
-    root.update_idletasks()
-
-    contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
-    
-    screenCnt = None
-    for c in contours:
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-        if len(approx) == 4:
-            screenCnt = approx
-            break
-
-    if screenCnt is not None:
-        pts_relative = screenCnt.reshape(4, 2)
-        deskewed_cv = four_point_transform(warped_cv, pts_relative)
-    else:
-        deskewed_cv = warped_cv
-        print("Could not find a clear 4-point contour for deskew. Using warped image.")
-
-    deskewed_pil = Image.fromarray(cv2.cvtColor(deskewed_cv, cv2.COLOR_BGR2RGB))
-    deskewed_pil = deskewed_pil.resize((max_width, int(deskewed_pil.height * max_width / deskewed_pil.width)), Image.LANCZOS)
-    deskewed_tk = ImageTk.PhotoImage(deskewed_pil)
-    
-    if not hasattr(root, 'deskewed_label'):
-        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
-        frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="8. Deskewed Plate", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
-        root.deskewed_label = tk.Label(frame, bg=FRAME_BG_COLOR)
-        root.deskewed_label.pack(padx=5, pady=5)
-    root.deskewed_label.config(image=deskewed_tk)
-    root.deskewed_label.image = deskewed_tk
-    canvas.xview_moveto(0.75)
-
-    # 9. Blur the deskewed image for OCR
-    filename_label.config(text="Step 9/10: Blurring final image for OCR...", fg=TEXT_COLOR)
-    root.update_idletasks()
-    
-    deskewed_gray = cv2.cvtColor(deskewed_cv, cv2.COLOR_BGR2GRAY)
-    blurred_final = cv2.GaussianBlur(deskewed_gray, (5, 5), 0)
-    
-    blurred_final_pil = Image.fromarray(blurred_final)
-    blurred_final_pil = blurred_final_pil.resize((max_width, int(blurred_final_pil.height * max_width / blurred_final_pil.width)), Image.LANCZOS)
-    blurred_final_tk = ImageTk.PhotoImage(blurred_final_pil)
-
-    if not hasattr(root, 'blurred_final_label'):
-        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
-        frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="9. Final Blurred Plate", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
-        root.blurred_final_label = tk.Label(frame, bg=FRAME_BG_COLOR)
-        root.blurred_final_label.pack(padx=5, pady=5)
-    root.blurred_final_label.config(image=blurred_final_tk)
-    root.blurred_final_label.image = blurred_final_tk
-    canvas.xview_moveto(0.85)
-
-    # 10. OCR: Tesseract
-    filename_label.config(text="Step 10/10: OCR and cleaning text...", fg=TEXT_COLOR)
+    # 8. OCR: Tesseract
+    filename_label.config(text="Step 8/8: OCR and cleaning text...", fg=TEXT_COLOR)
     root.update_idletasks()
     results_chars = code_prov_model(warped_cv, verbose=False)
     
@@ -399,12 +342,12 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'detected_chars_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="10. Chars Detected", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="8. Chars Detected", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.detected_chars_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.detected_chars_label.pack(padx=5, pady=5)
     root.detected_chars_label.config(image=detected_chars_tk)
     root.detected_chars_label.image = detected_chars_tk
-    canvas.xview_moveto(1.0)
+    canvas.xview_moveto(0.75)
 
     # Display both full and chars-only text
     result_label.config(text=f"Detected License Plate: {extracted_text_full}\n(Chars Only: {extracted_text_chars_only})", fg=ACCENT_COLOR)
@@ -442,7 +385,7 @@ def upload_image():
             filename_label.config(text="Selected file: " + file_path.split("/")[-1], fg=TEXT_COLOR)
             result_label.config(text="", fg=ACCENT_COLOR)
             
-            for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'deskewed_label', 'blurred_final_label', 'detected_chars_label']:
+            for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'detected_chars_label']:
                 if hasattr(root, attr):
                     getattr(root, attr).config(image='')
             canvas.xview_moveto(0)
