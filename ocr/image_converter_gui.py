@@ -193,11 +193,74 @@ def run_yolo_detection_and_ocr():
     root.gray_label.image = gray_tk
     canvas.xview_moveto(0.3)
     
-    # 4. Threshold
-    filename_label.config(text="Step 4/12: Thresholding...", fg=TEXT_COLOR)
+    # 4. Sharpening
+    filename_label.config(text="Step 4/12: Sharpening...", fg=TEXT_COLOR)
     root.update_idletasks()
     
-    ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
+    sharpened = cv2.filter2D(gray, -1, kernel)
+    
+    sharpened_pil = Image.fromarray(sharpened)
+    sharpened_pil = sharpened_pil.resize((max_width, int(sharpened_pil.height * max_width / sharpened_pil.width)), Image.LANCZOS)
+    sharpened_tk = ImageTk.PhotoImage(sharpened_pil)
+    
+    if not hasattr(root, 'sharpened_label'):
+        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
+        frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(frame, text="4. Sharpened", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        root.sharpened_label = tk.Label(frame, bg=FRAME_BG_COLOR)
+        root.sharpened_label.pack(padx=5, pady=5)
+    root.sharpened_label.config(image=sharpened_tk)
+    root.sharpened_label.image = sharpened_tk
+    canvas.xview_moveto(0.35)
+    
+    # 5. Unsharp Masking
+    filename_label.config(text="Step 5/12: Unsharp Masking...", fg=TEXT_COLOR)
+    root.update_idletasks()
+    
+    blurred = cv2.GaussianBlur(gray, (9, 9), 10.0)
+    unsharp = cv2.addWeighted(gray, 1.5, blurred, -0.5, 0)
+    
+    unsharp_pil = Image.fromarray(unsharp)
+    unsharp_pil = unsharp_pil.resize((max_width, int(unsharp_pil.height * max_width / unsharp_pil.width)), Image.LANCZOS)
+    unsharp_tk = ImageTk.PhotoImage(unsharp_pil)
+    
+    if not hasattr(root, 'unsharp_label'):
+        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
+        frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(frame, text="5. Unsharp Mask", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        root.unsharp_label = tk.Label(frame, bg=FRAME_BG_COLOR)
+        root.unsharp_label.pack(padx=5, pady=5)
+    root.unsharp_label.config(image=unsharp_tk)
+    root.unsharp_label.image = unsharp_tk
+    canvas.xview_moveto(0.4)
+    
+    # 6. Laplacian Filter
+    filename_label.config(text="Step 6/12: Laplacian Filter...", fg=TEXT_COLOR)
+    root.update_idletasks()
+    
+    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+    laplacian = np.uint8(np.absolute(laplacian))
+    
+    laplacian_pil = Image.fromarray(laplacian)
+    laplacian_pil = laplacian_pil.resize((max_width, int(laplacian_pil.height * max_width / laplacian_pil.width)), Image.LANCZOS)
+    laplacian_tk = ImageTk.PhotoImage(laplacian_pil)
+    
+    if not hasattr(root, 'laplacian_label'):
+        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
+        frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(frame, text="6. Laplacian", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        root.laplacian_label = tk.Label(frame, bg=FRAME_BG_COLOR)
+        root.laplacian_label.pack(padx=5, pady=5)
+    root.laplacian_label.config(image=laplacian_tk)
+    root.laplacian_label.image = laplacian_tk
+    canvas.xview_moveto(0.45)
+    
+    # 7. Threshold
+    filename_label.config(text="Step 7/12: Thresholding...", fg=TEXT_COLOR)
+    root.update_idletasks()
+    
+    ret, thresh = cv2.threshold(unsharp, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     
     thresh_pil = Image.fromarray(thresh)
     thresh_pil = thresh_pil.resize((max_width, int(thresh_pil.height * max_width / thresh_pil.width)), Image.LANCZOS)
@@ -206,15 +269,15 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'thresh_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="4. Threshold", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="7. Threshold", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.thresh_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.thresh_label.pack(padx=5, pady=5)
     root.thresh_label.config(image=thresh_tk)
     root.thresh_label.image = thresh_tk
-    canvas.xview_moveto(0.4)
+    canvas.xview_moveto(0.5)
     
-    # 5. Contour Detection
-    filename_label.config(text="Step 5/12: Contour Detection...", fg=TEXT_COLOR)
+    # 8. Contour Detection
+    filename_label.config(text="Step 8/12: Contour Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     # Find largest white contour only
@@ -232,15 +295,15 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'contour_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="5. Contour Detection", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="8. Contour Detection", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.contour_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.contour_label.pack(padx=5, pady=5)
     root.contour_label.config(image=contour_tk)
     root.contour_label.image = contour_tk
-    canvas.xview_moveto(0.45)
+    canvas.xview_moveto(0.55)
     
-    # 6. Rectangle Corner Detection
-    filename_label.config(text="Step 6/12: Rectangle Corner Detection...", fg=TEXT_COLOR)
+    # 9. Rectangle Corner Detection
+    filename_label.config(text="Step 9/12: Rectangle Corner Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     corner_img = initial_cropped_plate.copy()
@@ -259,15 +322,15 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'corner_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="6. Rectangle Corners", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="9. Rectangle Corners", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.corner_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.corner_label.pack(padx=5, pady=5)
     root.corner_label.config(image=corner_tk)
     root.corner_label.image = corner_tk
-    canvas.xview_moveto(0.55)
+    canvas.xview_moveto(0.6)
     
-    # 7. Warp Perspective
-    filename_label.config(text="Step 7/12: Warp Perspective...", fg=TEXT_COLOR)
+    # 10. Warp Perspective
+    filename_label.config(text="Step 10/12: Warp Perspective...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     warped_cv = initial_cropped_plate.copy()
@@ -292,81 +355,18 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'warped_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="7. Warped Perspective", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="10. Warped Perspective", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.warped_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.warped_label.pack(padx=5, pady=5)
     root.warped_label.config(image=warped_tk)
     root.warped_label.image = warped_tk
     canvas.xview_moveto(0.65)
     
-    # 8. Sharpening
-    filename_label.config(text="Step 8/12: Sharpening...", fg=TEXT_COLOR)
-    root.update_idletasks()
-    
-    warped_gray = cv2.cvtColor(warped_cv, cv2.COLOR_BGR2GRAY)
-    kernel = np.array([[-1,-1,-1], [-1,9,-1], [-1,-1,-1]])
-    sharpened = cv2.filter2D(warped_gray, -1, kernel)
-    
-    sharpened_pil = Image.fromarray(sharpened)
-    sharpened_pil = sharpened_pil.resize((max_width, int(sharpened_pil.height * max_width / sharpened_pil.width)), Image.LANCZOS)
-    sharpened_tk = ImageTk.PhotoImage(sharpened_pil)
-    
-    if not hasattr(root, 'sharpened_label'):
-        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
-        frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="8. Sharpened", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
-        root.sharpened_label = tk.Label(frame, bg=FRAME_BG_COLOR)
-        root.sharpened_label.pack(padx=5, pady=5)
-    root.sharpened_label.config(image=sharpened_tk)
-    root.sharpened_label.image = sharpened_tk
-    canvas.xview_moveto(0.7)
-    
-    # 9. Unsharp Masking
-    filename_label.config(text="Step 9/12: Unsharp Masking...", fg=TEXT_COLOR)
-    root.update_idletasks()
-    
-    blurred = cv2.GaussianBlur(warped_gray, (9, 9), 10.0)
-    unsharp = cv2.addWeighted(warped_gray, 1.5, blurred, -0.5, 0)
-    
-    unsharp_pil = Image.fromarray(unsharp)
-    unsharp_pil = unsharp_pil.resize((max_width, int(unsharp_pil.height * max_width / unsharp_pil.width)), Image.LANCZOS)
-    unsharp_tk = ImageTk.PhotoImage(unsharp_pil)
-    
-    if not hasattr(root, 'unsharp_label'):
-        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
-        frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="9. Unsharp Mask", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
-        root.unsharp_label = tk.Label(frame, bg=FRAME_BG_COLOR)
-        root.unsharp_label.pack(padx=5, pady=5)
-    root.unsharp_label.config(image=unsharp_tk)
-    root.unsharp_label.image = unsharp_tk
-    canvas.xview_moveto(0.75)
-    
-    # 10. Laplacian Filter
-    filename_label.config(text="Step 10/12: Laplacian Filter...", fg=TEXT_COLOR)
-    root.update_idletasks()
-    
-    laplacian = cv2.Laplacian(warped_gray, cv2.CV_64F)
-    laplacian = np.uint8(np.absolute(laplacian))
-    
-    laplacian_pil = Image.fromarray(laplacian)
-    laplacian_pil = laplacian_pil.resize((max_width, int(laplacian_pil.height * max_width / laplacian_pil.width)), Image.LANCZOS)
-    laplacian_tk = ImageTk.PhotoImage(laplacian_pil)
-    
-    if not hasattr(root, 'laplacian_label'):
-        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
-        frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="10. Laplacian", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
-        root.laplacian_label = tk.Label(frame, bg=FRAME_BG_COLOR)
-        root.laplacian_label.pack(padx=5, pady=5)
-    root.laplacian_label.config(image=laplacian_tk)
-    root.laplacian_label.image = laplacian_tk
-    canvas.xview_moveto(0.8)
-    
     # 11. Binary Display
     filename_label.config(text="Step 11/12: Binary Display...", fg=TEXT_COLOR)
     root.update_idletasks()
     
+    warped_gray = cv2.cvtColor(warped_cv, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(warped_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     
     binary_pil = Image.fromarray(binary)
@@ -381,7 +381,7 @@ def run_yolo_detection_and_ocr():
         root.binary_label.pack(padx=5, pady=5)
     root.binary_label.config(image=binary_tk)
     root.binary_label.image = binary_tk
-    canvas.xview_moveto(0.82)
+    canvas.xview_moveto(0.7)
     
     # 12. OCR: Tesseract
     filename_label.config(text="Step 12/12: OCR and cleaning text...", fg=TEXT_COLOR)
