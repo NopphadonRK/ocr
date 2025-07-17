@@ -118,7 +118,7 @@ def run_yolo_detection_and_ocr():
             return
             
     # Clear previously displayed images
-    for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'sharpened_label', 'unsharp_label', 'laplacian_label', 'detected_chars_label']:
+    for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'sharpened_label', 'unsharp_label', 'laplacian_label', 'binary_label', 'detected_chars_label']:
         if hasattr(root, attr):
             getattr(root, attr).config(image='')
     result_label.config(text="")
@@ -126,7 +126,7 @@ def run_yolo_detection_and_ocr():
     max_width = 400
     
     # 1. Detection: YOLO
-    filename_label.config(text="Step 1/11: Detecting license plate...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 1/12: Detecting license plate...", fg=TEXT_COLOR)
     root.update_idletasks()
     results_plate = license_plate_model(original_cv_image, verbose=False)
     
@@ -155,7 +155,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0)
 
     # 2. Cropping ป้ายทะเบียน
-    filename_label.config(text="Step 2/11: Cropping plate...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 2/12: Cropping plate...", fg=TEXT_COLOR)
     root.update_idletasks()
     initial_cropped_plate = original_cv_image[y1:y2, x1:x2]
 
@@ -174,7 +174,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.2)
     
     # 3. Grayscale
-    filename_label.config(text="Step 3/11: Converting to Grayscale...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 3/12: Converting to Grayscale...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     gray = cv2.cvtColor(initial_cropped_plate, cv2.COLOR_BGR2GRAY)
@@ -194,7 +194,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.3)
     
     # 4. Threshold
-    filename_label.config(text="Step 4/11: Thresholding...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 4/12: Thresholding...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
@@ -214,7 +214,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.4)
     
     # 5. Contour Detection
-    filename_label.config(text="Step 5/11: Contour Detection...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 5/12: Contour Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     # Find largest white contour only
@@ -240,7 +240,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.45)
     
     # 6. Rectangle Corner Detection
-    filename_label.config(text="Step 6/11: Rectangle Corner Detection...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 6/12: Rectangle Corner Detection...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     corner_img = initial_cropped_plate.copy()
@@ -267,7 +267,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.55)
     
     # 7. Warp Perspective
-    filename_label.config(text="Step 7/11: Warp Perspective...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 7/12: Warp Perspective...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     warped_cv = initial_cropped_plate.copy()
@@ -300,7 +300,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.65)
     
     # 8. Sharpening
-    filename_label.config(text="Step 8/11: Sharpening...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 8/12: Sharpening...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     warped_gray = cv2.cvtColor(warped_cv, cv2.COLOR_BGR2GRAY)
@@ -322,7 +322,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.7)
     
     # 9. Unsharp Masking
-    filename_label.config(text="Step 9/11: Unsharp Masking...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 9/12: Unsharp Masking...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     blurred = cv2.GaussianBlur(warped_gray, (9, 9), 10.0)
@@ -343,7 +343,7 @@ def run_yolo_detection_and_ocr():
     canvas.xview_moveto(0.75)
     
     # 10. Laplacian Filter
-    filename_label.config(text="Step 10/11: Laplacian Filter...", fg=TEXT_COLOR)
+    filename_label.config(text="Step 10/12: Laplacian Filter...", fg=TEXT_COLOR)
     root.update_idletasks()
     
     laplacian = cv2.Laplacian(warped_gray, cv2.CV_64F)
@@ -363,8 +363,28 @@ def run_yolo_detection_and_ocr():
     root.laplacian_label.image = laplacian_tk
     canvas.xview_moveto(0.8)
     
-    # 11. OCR: Tesseract
-    filename_label.config(text="Step 11/11: OCR and cleaning text...", fg=TEXT_COLOR)
+    # 11. Binary Display
+    filename_label.config(text="Step 11/12: Binary Display...", fg=TEXT_COLOR)
+    root.update_idletasks()
+    
+    _, binary = cv2.threshold(warped_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    binary_pil = Image.fromarray(binary)
+    binary_pil = binary_pil.resize((max_width, int(binary_pil.height * max_width / binary_pil.width)), Image.LANCZOS)
+    binary_tk = ImageTk.PhotoImage(binary_pil)
+    
+    if not hasattr(root, 'binary_label'):
+        frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
+        frame.pack(side=tk.LEFT, padx=10, pady=10)
+        tk.Label(frame, text="11. Binary", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        root.binary_label = tk.Label(frame, bg=FRAME_BG_COLOR)
+        root.binary_label.pack(padx=5, pady=5)
+    root.binary_label.config(image=binary_tk)
+    root.binary_label.image = binary_tk
+    canvas.xview_moveto(0.82)
+    
+    # 12. OCR: Tesseract
+    filename_label.config(text="Step 12/12: OCR and cleaning text...", fg=TEXT_COLOR)
     root.update_idletasks()
     results_chars = code_prov_model(warped_cv, verbose=False)
     
@@ -406,12 +426,12 @@ def run_yolo_detection_and_ocr():
     if not hasattr(root, 'detected_chars_label'):
         frame = tk.Frame(image_frame, bg=FRAME_BG_COLOR, bd=2, relief="solid")
         frame.pack(side=tk.LEFT, padx=10, pady=10)
-        tk.Label(frame, text="11. Chars Detected", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
+        tk.Label(frame, text="12. Chars Detected", font=FONT_SUB_TITLE, bg=FRAME_BG_COLOR, fg=HEADER_COLOR).pack(pady=5)
         root.detected_chars_label = tk.Label(frame, bg=FRAME_BG_COLOR)
         root.detected_chars_label.pack(padx=5, pady=5)
     root.detected_chars_label.config(image=detected_chars_tk)
     root.detected_chars_label.image = detected_chars_tk
-    canvas.xview_moveto(0.85)
+    canvas.xview_moveto(0.9)
 
     # Display both full and chars-only text
     result_label.config(text=f"Detected License Plate: {extracted_text_full}\n(Chars Only: {extracted_text_chars_only})", fg=ACCENT_COLOR)
@@ -449,7 +469,7 @@ def upload_image():
             filename_label.config(text="Selected file: " + file_path.split("/")[-1], fg=TEXT_COLOR)
             result_label.config(text="", fg=ACCENT_COLOR)
             
-            for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'sharpened_label', 'unsharp_label', 'laplacian_label', 'detected_chars_label']:
+            for attr in ['detected_plate_label', 'cropped_plate_label', 'gray_label', 'thresh_label', 'contour_label', 'corner_label', 'warped_label', 'sharpened_label', 'unsharp_label', 'laplacian_label', 'binary_label', 'detected_chars_label']:
                 if hasattr(root, attr):
                     getattr(root, attr).config(image='')
             canvas.xview_moveto(0)
